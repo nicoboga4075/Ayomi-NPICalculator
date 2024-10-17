@@ -52,12 +52,16 @@ def get_results(request : Request, db = Depends(get_db)):
 @app.get('/results/csv')
 def download_results_csv(db  = Depends(get_db)):
     # Converts the data to a pandas DataFrame
-    results = db.query(models.Operation).all()
-    df = pd.DataFrame(results)
+    operations = db.query(models.Operation).all()
+    data = [{"expression": op.expression, "result": op.result} for op in operations]
+
+    # Creates a Pandas DataFrame with two columns: expression and result
+    df = pd.DataFrame(data, columns=["expression", "result"])
     # Uses StringIO to capture the CSV data in-memory
     csv_io = StringIO()
     df.to_csv(csv_io, index=False)
     csv_io.seek(0)  # Moves to the beginning of the StringIO buffer
+
     # Sends CSV as a StreamingResponse
     headers = {
         'Content-Disposition': 'attachment; filename="results.csv"'
