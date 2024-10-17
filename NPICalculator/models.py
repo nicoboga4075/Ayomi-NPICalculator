@@ -1,3 +1,4 @@
+from tkinter import FALSE
 from sqlalchemy import Column, Integer, String, Float
 import os, re
 from sqlalchemy import create_engine
@@ -9,23 +10,22 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///app.db")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}) # Multithreading for FastAPI
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-Base.metadata.create_all(bind=engine)
 
 class Operation(Base):
     __tablename__ = "operation"
-    __table_args__ = {'extend_existing': True} # Enable further modifications of the structure
+    __table_args__ = {'extend_existing': True} # Enables further modifications of the structure
 
     """ Represents a mathematical operation with an expression and its result.
     
     The `Operation` class is designed to validate and evaluate basic infix expressions given separately by a `Calculator` instance.
-    It also integrates with a database to store complete expressions.
+    It also integrates with a database to store complete expressions which use RPN notation.
 
     """  
     id = Column(Integer, primary_key=True, index=True)
-    expression = Column(String)
-    result = Column(Float)
+    expression = Column(String, nullable = False) # Avoids to save NULL values
+    result = Column(Float, nullable = False)
 
-    def __init__(self, expression = None):
+    def __init__(self, expression = None, result = None):
         """ Initializes the Operation instance with an expression.
 
         >>> op = Operation("0 + 0")
@@ -34,6 +34,7 @@ class Operation(Base):
 
         """
         self.expression = expression
+        self.result = result
 
     def infix_pattern(self):
         """ Checks if the expression matches a basic arithmetic operation: {a} {operator} {b}
@@ -44,7 +45,6 @@ class Operation(Base):
             - An optional fractional part `(\\.\\d+)?` (to match decimals).
         - `([+\\-*/])` : Matches any of the operators: +, -, *, or /.
         - `([-+]?\\d+(\\.\\d+)?)` : Similar to the first number, this matches a second operand that can also be negative or a floating-point number.
-        - `\\s*$` : Matches any trailing whitespace characters.
 
         >>> op = Operation("3 + 4")
         >>> op.infix_pattern() is not None
@@ -79,7 +79,6 @@ class Operation(Base):
         True
 
         """
-
         pattern = r'^\s*([-+]?\d+(\.\d+)?)\s*([\+\-\*/])\s*([-+]?\d+(\.\d+)?)\s*$'
         return re.match(pattern, self.expression)
 
@@ -330,20 +329,29 @@ class Calculator:
 
         for o in expression.split():
             if Operation.check_number(o):
-                # Add the operand to the stack
+                # Adds the operand to the stack
                 self.stack.append(float(o))
             else:
-                # Operator encountered, pop two operands from the stack
+                # Operator encountered, pops two operands from the stack
                 if len(self.stack) < 2:
-                    raise ValueError("Not enough values in the expression")
+                    return None
                 b = self.stack.pop()
                 a = self.stack.pop() 
                 
-                # Create the operation instance and calculate
+                # Creates the operation instance and calculate
                 operation = Operation(expression=f"{a} {o} {b}")
                 self.stack.append(operation.calculate()) 
                 
         # Final result should be the only item left in the stack
         if len(self.stack) == 1:
             return self.stack.pop()
-        raise ValueError("Invalid result")
+
+    def save(self, operation, db):
+        """ Attempts to save an operation in the database"""
+        try:
+            db.add(operation)
+            db.commit()  # Commits to save the operation
+        except Exception as e:
+            db.rollback()  # Rollbacks in case of failure
+
+Base.metadata.create_all(bind=engine) # After the models to be sure that tables are created

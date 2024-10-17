@@ -33,6 +33,9 @@
     <Content Include="docker-compose.yml">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="NPICalculator\static\index.html" />
+    <Content Include="NPICalculator\static\results.html" />
+    <Content Include="NPICalculator\static\style.css" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <ItemGroup>

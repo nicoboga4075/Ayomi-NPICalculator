@@ -1,5 +1,6 @@
 fastapi
 uvicorn
 sqlalchemy
-databases
+Jinja2
+python-multipart
 pandas

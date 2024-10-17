@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NPI Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <!-- Includes SweetAlert -->
+</head>
+<body>
+    <div class="calculator-container">
+        <h1><i class="fas fa-calculator"></i>&nbsp;NPI Calculator</h1>
+        <form action="/calculate" method="post" id="calculator-form">
+            <input type="text" name="expression" placeholder="Enter expression (e.g., 0 0 +)">
+            <button type="submit"><i class="fas fa-check"></i></button>
+        </form>
+        <!-- Button to navigate to see the results page -->
+        <button id="results-btn" onclick="window.location.href='/results'">
+            <i class="fas fa-database"></i>&nbsp;&nbsp;View Results History
+        </button>
+    </div>
+    <script>
+        // Displays SweetAlert message if it exists
+        const message = "{{ message|safe }}";
+        if (message) {
+            Swal.fire({
+                title: 'Message',
+                text: message,
+                icon: "{{ icon }}",
+                confirmButtonText: 'OK'
+            });
+        }
+    </script>
+</body>
+</html>
