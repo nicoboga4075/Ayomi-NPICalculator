@@ -6,7 +6,14 @@
 True
 
 """
-from fastapi import Request
+import subprocess
+import sys
+
+try:
+    from fastapi import Request
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "fastapi"])
+    from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
 class BaseView:

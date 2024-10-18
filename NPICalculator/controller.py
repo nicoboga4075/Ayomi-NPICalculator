@@ -15,11 +15,23 @@ True
 True
 
 """
+import subprocess
+import sys
 from io import StringIO
-import pandas as pd
+
+try:
+    import pandas
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas"])
+    import pandas
+try:
+    from fastapi import FastAPI
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "fastapi"])
 from fastapi import FastAPI, Request, Depends, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+
 from NPICalculator import models, views # MVC Design
 
 # FastAPI Setup
@@ -199,7 +211,7 @@ def download_results_csv(db  = Depends(get_db)):
     data = [{"expression": op.expression, "result": op.result} for op in operations]
 
     # Creates a Pandas DataFrame with two columns: expression and result
-    df = pd.DataFrame(data, columns=["expression", "result"])
+    df = pandas.DataFrame(data, columns=["expression", "result"])
     # Uses StringIO to capture the CSV data in-memory
     csv_io = StringIO()
     df.to_csv(csv_io, index=False)

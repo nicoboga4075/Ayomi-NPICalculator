@@ -9,7 +9,14 @@ True
 
 """
 import os
+import sys
+import subprocess
 import re
+
+try:
+    from sqlalchemy import Column
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "sqlalchemy"])
 from sqlalchemy import Column, Integer, String, Float, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
