@@ -1,5 +1,5 @@
-from fastapi.templating import Jinja2Templates
 from fastapi import Request
+from fastapi.templating import Jinja2Templates
 
 class CalculatorView:
     def __init__(self):
@@ -16,9 +16,11 @@ class CalculatorView:
         return self.templates.TemplateResponse(self.template_name, {"request": request, **response})
 
 class IndexView(CalculatorView):
-    def render(self, request: Request, message, icon):
+    def render(self, request: Request, message = "", icon = "info"):
+        """ Renders a template for home page (welcoming and computing). """
         return super().render(request, {"message": message, "icon" : icon})
 
 class ResultsView(CalculatorView):
     def render(self, request: Request, results):
+        """ Renders a template for operations history (with possibly downloading in CSV). """
         return super().render(request, {"results": results})

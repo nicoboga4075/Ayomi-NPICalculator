@@ -48,9 +48,10 @@ To access the API from a different machine on the network, use the machine's IP 
 
 ### API Endpoints
 
-- GET	**/results** :	Retrieves all stored calculations in the database
-- GET	**/results/csv** :	Downloads all stored calculations as CSV
+- GET	**/home** :	Displays home page
 - POST	**/calculate** :	Performs a calculation
+- GET	**/results** :	Retrieves all calculations in the database
+- GET	**/results/csv** :	Downloads all stored calculations as CSV
 
 ### Environment Variables
 

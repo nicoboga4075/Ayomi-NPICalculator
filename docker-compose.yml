@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   app:
     build: .
@@ -10,4 +9,9 @@ services:
       - DATABASE_URL=sqlite:///app.db
   test:
     build: .
-    command: sh -c "python -m doctest NPICalculator/models.py -v ; python -m doctest NPICalculator/views.py -v "
+    command: >
+        sh -c "
+          python -m doctest NPICalculator/controller.py -v; 
+          python -m doctest NPICalculator/models.py -v;
+          python -m doctest NPICalculator/views.py -v;
+        "

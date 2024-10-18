@@ -1,15 +1,15 @@
-import pandas as pd
+from NPICalculator import models, views # MVC Design
 from io import StringIO
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, Depends, Form
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from NPICalculator import models, views # MVC Design
 
 # FastAPI Setup
 app = FastAPI()
 
-# Gives access to static directory
-app.mount("/static", StaticFiles(directory="NPICalculator/static"), name="static")
+# Calculator Setup
+engine = models.Calculator()
 
 # Dependency
 def get_db():
@@ -19,13 +19,19 @@ def get_db():
     finally:
         db.close()
 
-# Calculator Setup
-engine = models.Calculator()
-
 # Endpoints
+@app.on_event("startup")
+def startup_event():
+    # Gives access to static directory at the beginning
+    app.mount("/static", StaticFiles(directory="NPICalculator/static"), name="static")
+
 @app.get("/", response_class=HTMLResponse)
 def index(request : Request):
-    return views.IndexView().render(request, "Welcome to NPI Calculator Tool ! ", "info")  
+    return views.IndexView().render(request, "Welcome to NPI Calculator Tool ! ")
+
+@app.get("/home", response_class=HTMLResponse)
+def home(request : Request):
+    return views.IndexView().render(request)  
    
 @app.post("/calculate", response_class=HTMLResponse)
 def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
@@ -64,6 +70,6 @@ def download_results_csv(db  = Depends(get_db)):
 
     # Sends CSV as a StreamingResponse
     headers = {
-        'Content-Disposition': 'attachment; filename="results.csv"'
+        'Content-Disposition': 'attachment; filename="history.csv"'
     }
     return StreamingResponse(csv_io, media_type="text/csv", headers=headers)

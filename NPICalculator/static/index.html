@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NPI Calculator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <title>NPI Calculator</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <!-- Includes SweetAlert -->
 </head>
@@ -11,25 +12,53 @@
     <div class="calculator-container">
         <h1><i class="fas fa-calculator"></i>&nbsp;NPI Calculator</h1>
         <form action="/calculate" method="post" id="calculator-form">
-            <input type="text" name="expression" placeholder="Enter expression (e.g., 0 0 +)">
-            <button type="submit"><i class="fas fa-check"></i></button>
+            <input type="text" name="expression" id="expression-input" placeholder="Enter expression (e.g., 0 0 +)" required
+                   oninvalid="this.setCustomValidity('Please enter an expression.')"
+                   oninput="setCustomValidity('')">
+            <button type="submit" id="submit-btn" disabled>
+                <i class="fas fa-check"></i>&nbsp;&nbsp;Compute
+            </button>
         </form>
         <!-- Button to navigate to see the results page -->
         <button id="results-btn" onclick="window.location.href='/results'">
-            <i class="fas fa-database"></i>&nbsp;&nbsp;View Results History
+            <i class="fas fa-database"></i>&nbsp;&nbsp;View Operations History
         </button>
     </div>
     <script>
-        // Displays SweetAlert message if it exists
+        // Displays SweetAlert message if it exists with safe encoding
         const message = "{{ message|safe }}";
-        if (message) {
+        const icon = "{{ icon|safe }}";
+
+        if (message !="") {
             Swal.fire({
                 title: 'Message',
                 text: message,
-                icon: "{{ icon }}",
+                icon: icon,
                 confirmButtonText: 'OK'
             });
         }
+
+        // Shows loader in the button when the form is submitted
+        const inputField = document.getElementById("expression-input");
+        const submitButton = document.getElementById('submit-btn');
+
+        // Enables the submit button only when expression is provided
+        inputField.addEventListener("input", function () {
+            if (inputField.value.trim().length > 0) {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
+        });
+
+        // Submits form only on button click
+        submitButton.addEventListener("click", function () {
+            if (inputField.value.trim() !== "") {
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>&nbsp;&nbsp;Computing...';
+                document.getElementById("calculator-form").submit();
+                submitButton.disabled = true;
+            }
+        });
     </script>
 </body>
 </html>

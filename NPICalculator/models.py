@@ -1,7 +1,5 @@
-from tkinter import FALSE
-from sqlalchemy import Column, Integer, String, Float
 import os, re
-from sqlalchemy import create_engine
+from sqlalchemy import Column, Integer, String, Float, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -317,6 +315,9 @@ class Calculator:
         20.0
 
         >>> calc.compute("+0 +0 -") # 0 - 0
+        0.0
+
+        >>> calc.compute("0 0 +") # 0 + 0
         0.0
 
         >>> calc.compute("8 0 /") # Division by zero
