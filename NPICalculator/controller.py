@@ -1,10 +1,26 @@
-from NPICalculator import models, views # MVC Design
+""" 
+Controller for the app using FastAPI.
+
+This module sets up the FastAPI application and defines endpoints for rendering 
+views uppon models (MVC design).
+
+>>> import fastapi
+>>> fastapi_version = fastapi.__version__
+>>> isinstance(fastapi_version, str)
+True
+
+>>> import pandas
+>>> pandas_version = pandas.__version__
+>>> isinstance(pandas_version, str)
+True
+
+"""
 from io import StringIO
 import pandas as pd
 from fastapi import FastAPI, Request, Depends, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from unittest.mock import MagicMock
+from NPICalculator import models, views # MVC Design
 
 # FastAPI Setup
 app = FastAPI()
@@ -14,7 +30,15 @@ engine = models.Calculator()
 
 # Dependency
 def get_db():
-    db = models.SessionLocal() 
+    """ Dependency that provides a database session. 
+    >>> import sqlalchemy
+    >>> db = next(get_db()) 
+    >>> isinstance(db, sqlalchemy.orm.session.Session)
+    True
+    >>> db.close()
+    
+    """
+    db = models.SessionLocal()
     try:
         yield db
     finally:
@@ -23,13 +47,23 @@ def get_db():
 # Gives access to static directory at the beginning
 @app.on_event("startup")
 def startup_event():
+    """ Mounts the static directory to serve static files on startup.
+    
+    >>> app = FastAPI()
+    >>> startup_event()
+    >>> import os
+    >>> os.path.exists(os.path.join("NPICalculator/static", "favicon.ico"))
+    True
+    
+    """
     app.mount("/static", StaticFiles(directory="NPICalculator/static"), name="static")
 
 # Endpoints
 @app.get("/", response_class=HTMLResponse)
 def index(request : Request):
-    """Renders the index page with a welcome message.
+    """ Renders the index page with a welcome message.
 
+    >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
     >>> response = index(request)
     >>> response.status_code == 200
@@ -38,24 +72,28 @@ def index(request : Request):
     True
 
     """
-    return views.IndexView().render(request, "Welcome to NPI Calculator Tool !")
+    message = "Welcome to NPI Calculator Tool !"
+    icon = "info"
+    return views.IndexView().render(request, message = message, icon = icon)
 
 @app.get("/home", response_class=HTMLResponse)
 def home(request : Request):
     """ Renders the home page.
     
+    >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
     >>> response = home(request)
     >>> response.status_code == 200
     True
 
     """
-    return views.IndexView().render(request)  
-   
+    return views.IndexView().render(request, message = None, icon = None)
+
 @app.post("/calculate", response_class=HTMLResponse)
 def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
     """ Calculates the expression and stores it in the database.
     
+    >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
     >>> request.form = MagicMock(return_value={"expression": "1 1 +"})
     >>> db = MagicMock()
@@ -120,17 +158,18 @@ def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
             engine.save(op, db)
             message = f"{expression} = {result}"
             icon = "success"
-    except Exception as e:
-        return views.IndexView().render(request, str(e), icon)
-    return views.IndexView().render(request, message, icon)      
+    except ValueError as _:
+        pass
+    return views.IndexView().render(request, message = message, icon = icon)
 
 @app.get('/results', response_class=HTMLResponse)
 def get_results(request : Request, db = Depends(get_db)):
     """ Retrieves results from the database and renders them.
     
+    >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
     >>> db = MagicMock()
-    >>> db.query().all.return_value = [models.Operation(expression="3 4 +", result=7.0), models.Operation(expression="6 3 *", result=18.0)]
+    >>> db.query().all.return_value = [models.Operation(expression="3 4 +", result=7.0)]
     >>> response = get_results(request, db)
     >>> response.status_code == 200
     True
@@ -139,12 +178,13 @@ def get_results(request : Request, db = Depends(get_db)):
 
     """
     results = db.query(models.Operation).all()
-    return views.ResultsView().render(request, results)
+    return views.ResultsView().render(request, results = results)
 
 @app.get('/results/csv')
 def download_results_csv(db  = Depends(get_db)):
     """ Downloads the operation history as a CSV file.
     
+    >>> from unittest.mock import MagicMock
     >>> db = MagicMock()
     >>> db.query().all.return_value = [models.Operation(expression="3 + 4", result=7)]
     >>> response = download_results_csv(db)

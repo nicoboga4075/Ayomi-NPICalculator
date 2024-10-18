@@ -1,30 +1,45 @@
-import os, re
+"""
+This module defines classes for basic arithmetic operations (Addition, Subtraction, etc.) 
+and integrates a calculator using Reverse Polish Notation.
+
+>>> import sqlalchemy
+>>> sqlalchemy_version = sqlalchemy.__version__
+>>> isinstance(sqlalchemy_version, str)
+True
+
+"""
+import os
+import re
 from sqlalchemy import Column, Integer, String, Float, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # SQLAlchemy Setup
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///app.db")
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}) # Multithreading for FastAPI
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}) # Multithreading
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 class Operation(Base):
+    """ Represents a mathematical operation with an expression and its result.
+    
+    This class handles the evaluation of a RPN expression converting it into basic infix operations.
+    If the computing succeeded, it is stored in the 'operation' table of the database.
+    When 
+
+    """
     __tablename__ = "operation"
     __table_args__ = {'extend_existing': True} # Enables further modifications of the structure
 
-    """ Represents a mathematical operation with an expression and its result.
-    
-    The `Operation` class is designed to validate and evaluate basic infix expressions given separately by a `Calculator` instance.
-    It also integrates with a database to store complete expressions which use RPN notation.
-
-    """  
     id = Column(Integer, primary_key=True, index=True)
-    expression = Column(String, nullable = False) # Avoids to save NULL values
+    expression = Column(String, nullable = False)
     result = Column(Float, nullable = False)
 
     def __init__(self, expression = None, result = None):
-        """ Initializes the Operation instance with an expression.
+        """ Initializes the Operation instance with an expression
+        If the result is given, it will be stored in the database (RPN expression).
+        The expression is None by default to be used by subclasses.
+        If the expression is given alone, it is an infix one.
 
         >>> op = Operation("0 + 0")
         >>> op.expression
@@ -36,13 +51,12 @@ class Operation(Base):
 
     def infix_pattern(self):
         """ Checks if the expression matches a basic arithmetic operation: {a} {operator} {b}
-        - `\s*` : Matches any leading and trailing whitespace characters.
+        - `s*` : Matches any leading and trailing whitespace characters.
         - `([-+]?\\d+(\\.\\d+)?)` : Matches a number that can be:
             - An optional plus or minus sign `[-+]?` (to allow for positive and negative numbers).
             - One or more digits `\\d+` (to match integers).
             - An optional fractional part `(\\.\\d+)?` (to match decimals).
-        - `([+\\-*/])` : Matches any of the operators: +, -, *, or /.
-        - `([-+]?\\d+(\\.\\d+)?)` : Similar to the first number, this matches a second operand that can also be negative or a floating-point number.
+        - `([+\\-*/])` : Matches any of the operators: +, -, *, or /.  
 
         >>> op = Operation("3 + 4")
         >>> op.infix_pattern() is not None
@@ -104,13 +118,13 @@ class Operation(Base):
         >>> op5.operator
         Traceback (most recent call last):
             ...
-        ValueError: Invalid operation
+        ValueError: Invalid expression : operator not found.
 
         """
         match = self.infix_pattern()
         if match:
             return match.group(3) # 1 and 2 for first operand, 4 and 5 for second operand
-        raise ValueError("Invalid operation")
+        raise ValueError("Invalid expression : operator not found.")
 
     @property
     def operation_class(self):
@@ -136,7 +150,7 @@ class Operation(Base):
         >>> op5.operation_class
         Traceback (most recent call last):
             ...
-        ValueError: Invalid operation
+        ValueError: Invalid expression : operator not found.
 
         """
         operators = {
@@ -148,8 +162,8 @@ class Operation(Base):
         return operators.get(self.operator)
 
     @staticmethod
-    def check_number(input):
-        """ Checks if the input is a valid number (int, float, or string representation of a number).
+    def check_number(input_calc):
+        """ Checks if the input is a valid number (int, float, or string as number).
 
         >>> Operation.check_number(0)
         True
@@ -180,7 +194,7 @@ class Operation(Base):
 
         """
         try:
-            float(input)
+            float(input_calc)
             return True
         except ValueError:
             return False
@@ -212,16 +226,20 @@ class Operation(Base):
 
         """
         match = self.infix_pattern()
-        if match:               
+        if match:
             a, b = match.group(1), match.group(4)
             if Operation.check_number(a) and Operation.check_number(b):
                 operation_class = self.operation_class()
-                return operation_class.calculate(float(a), float(b)) # An operation of two floats return a float
-        raise ValueError("Invalid operation")          
+                # An operation of two floats return a float
+                return operation_class.calculate(float(a), float(b))
+        raise ValueError("Invalid expression : pattern not recognized.")
 
 # Polymorphism
 
 class Addition(Operation):
+    """
+    Class for performing addition of numbers (integer or float)
+    """
     def calculate(self, a, b):
         """ Adds two numbers.
 
@@ -235,6 +253,9 @@ class Addition(Operation):
         return a + b
 
 class Subtraction(Operation):
+    """
+    Class for performing subtraction of numbers (integer or float)
+    """
     def calculate(self, a, b):
         """ Subtracts the first number by the second.
 
@@ -248,6 +269,9 @@ class Subtraction(Operation):
         return a - b
 
 class Multiplication(Operation):
+    """
+    Class for performing multiplication of numbers (integer or float)
+    """
     def calculate(self, a, b):
         """ Multiplies two numbers.
 
@@ -261,10 +285,16 @@ class Multiplication(Operation):
         return a * b
 
 class Division(Operation):
+    """
+    Class for performing divisions of numbers (integer or float)
+    """
     def calculate(self, a, b):
         """ Divides the first number by the second, only if it is not zero.
 
         >>> Division().calculate(8, 2)
+        4.0
+
+        >>> Division().calculate(8.0, 2.0)
         4.0
 
         >>> Division().calculate(8, 0)
@@ -296,7 +326,7 @@ class Calculator:
         self.stack = []
 
     def compute(self, expression):
-        """ Evaluates the expression and returns the result.
+        """ Evaluates a RPN expression and returns the result.
 
         >>> calc = Calculator()
         >>> calc.compute("3 4 + 2 *")  # (3 + 4) * 2
@@ -326,7 +356,7 @@ class Calculator:
         ValueError: Division by zero
         
         """
-        self.stack.clear()  # Resets stack for each new expression 
+        self.stack.clear()  # Resets stack for each new expression
 
         for o in expression.split():
             if Operation.check_number(o):
@@ -335,24 +365,26 @@ class Calculator:
             else:
                 # Operator encountered, pops two operands from the stack
                 if len(self.stack) < 2:
-                    return None
+                    raise ValueError("Insufficient operands for the operation")
                 b = self.stack.pop()
-                a = self.stack.pop() 
-                
+                a = self.stack.pop()
+
                 # Creates the operation instance and calculate
                 operation = Operation(expression=f"{a} {o} {b}")
-                self.stack.append(operation.calculate()) 
-                
+                self.stack.append(operation.calculate())
+
         # Final result should be the only item left in the stack
         if len(self.stack) == 1:
             return self.stack.pop()
+         # If there are multiple items left, the expression was incomplete
+        raise ValueError("Invalid expression : too many operands")
 
     def save(self, operation, db):
         """ Attempts to save an operation in the database"""
         try:
             db.add(operation)
             db.commit()  # Commits to save the operation
-        except Exception as e:
+        except ValueError as _:
             db.rollback()  # Rollbacks in case of failure
 
 Base.metadata.create_all(bind=engine) # After the models to be sure that tables are created
