@@ -36,6 +36,7 @@
     <Content Include="NPICalculator\static\index.html" />
     <Content Include="NPICalculator\static\results.html" />
     <Content Include="NPICalculator\static\style.css" />
+    <Content Include="NPICalculator\static\base.html" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <ItemGroup>
