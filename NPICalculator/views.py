@@ -1,4 +1,4 @@
-""" Views for the app, providing functionality to render templates using Jinja2. 
+""" Views for the app using Jinja2. 
 
 >>> import jinja2
 >>> jinja2_version = jinja2.__version__
@@ -93,8 +93,8 @@ class IndexView(BaseView):
         True
 
         """
-        message = response.get('message','')
-        icon = response.get('icon','')
+        message = response.get('message')
+        icon = response.get('icon')
         return super().render(request, {"message": message, "icon": icon})
 
 class ResultsView(BaseView):

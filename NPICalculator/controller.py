@@ -1,5 +1,4 @@
-""" 
-Controller for the app using FastAPI.
+""" Controller for the app using FastAPI.
 
 This module sets up the FastAPI application and defines endpoints for rendering 
 views uppon models (MVC design).

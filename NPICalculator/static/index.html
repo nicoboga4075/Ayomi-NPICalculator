@@ -21,7 +21,7 @@
         const message = "{{ message|safe }}";
         const icon = "{{ icon|safe }}";
 
-        if (message !="") {
+        if (message != "None" && message != "") {
             Swal.fire({
                 title: 'Message',
                 text: message,

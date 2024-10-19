@@ -1,4 +1,5 @@
-"""
+""" Models for the app using SQLite (SQLAlchemy).
+
 This module defines classes for basic arithmetic operations (Addition, Subtraction, etc.) 
 and integrates a calculator using Reverse Polish Notation.
 
@@ -25,7 +26,6 @@ class Operation(Base):
     
     This class handles the evaluation of a RPN expression converting it into basic infix operations.
     If the computing succeeded, it is stored in the 'operation' table of the database.
-    When 
 
     """
     __tablename__ = "operation"
