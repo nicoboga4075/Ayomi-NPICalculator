@@ -6,7 +6,7 @@
 
     <h2>Last Operation</h2>
     {% if results %}
-    <p>{{ results[-1].expression }} = {{ results[-1].result }}</p>
+    <p>{{ results[-1].expression|e }} = {{ results[-1].result|e }}</p>
     {% else %}
     <p>No operations recorded.</p>
     {% endif %}
@@ -29,8 +29,8 @@
             <tbody>
                 {% for result in results %}
                 <tr>
-                    <td>{{ result.expression }}</td>
-                    <td>{{ result.result }}</td>
+                    <td>{{ result.expression|e }}</td>
+                    <td>{{ result.result|e }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -17,9 +17,9 @@
     </button>
 </div>
 <script>
-        // Displays SweetAlert message if it exists with safe encoding
-        const message = "{{ message|safe }}";
-        const icon = "{{ icon|safe }}";
+        // Displays SweetAlert message if it exists with safe encoding (escaping)
+        const message = "{{ message|e }}";
+        const icon = "{{ icon|e }}";
 
         if (message != "None" && message != "") {
             Swal.fire({
