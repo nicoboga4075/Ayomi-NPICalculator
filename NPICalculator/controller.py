@@ -19,10 +19,18 @@ import pandas as pd
 from fastapi import FastAPI, Request, Depends, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from NPICalculator import models, views # MVC Design
 
 # FastAPI Setup
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins= ["http://localhost:8000"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
+    max_age= 24 * 60 * 60  # One day
+)
 
 # Calculator Setup
 engine = models.Calculator()
