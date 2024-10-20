@@ -49,6 +49,9 @@
     <Compile Include="NPICalculator\controller.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="NPICalculator\logger.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="NPICalculator\models.py">
       <SubType>Code</SubType>
     </Compile>

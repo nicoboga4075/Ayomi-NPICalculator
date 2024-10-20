@@ -15,15 +15,20 @@ True
 
 """
 from io import StringIO
+from time import time
 import pandas as pd
 from fastapi import FastAPI, Request, Depends, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from NPICalculator import models, views # MVC Design
+from NPICalculator.logger import logger # Custom logger
 
 # FastAPI Setup
 app = FastAPI()
+
+# CORS Setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins= ["http://localhost:8000"],
@@ -32,12 +37,38 @@ app.add_middleware(
     max_age= 24 * 60 * 60  # One day
 )
 
+# Basic Middleware Setup
+async def dispatch(request: Request, call_next):
+    """ Middleware function for logging request details in the FastAPI application.
+
+    This function is executed for every incoming HTTP request. It records the start time,
+    processes the request, and logs the HTTP method, request URL, and the time taken.
+
+    """
+    start_time = time()
+    response = await call_next(request)
+    process_time = time() - start_time
+    log_dict = {
+        "method": request.method,
+        "url": request.url.path,
+        "status_code": response.status_code,
+        "process_time": process_time
+    }
+    if response.status_code == 200:
+        logger.info("Request succeeded", extra=log_dict)
+    else:
+        logger.error("Request failed", extra=log_dict)
+    return response
+
+app.add_middleware(BaseHTTPMiddleware, dispatch = dispatch)
+
 # Calculator Setup
 engine = models.Calculator()
 
 # Dependency
 def get_db():
-    """ Dependency that provides a database session. 
+    """ Dependency that provides a database session.
+    
     >>> import sqlalchemy
     >>> db = next(get_db()) 
     >>> isinstance(db, sqlalchemy.orm.session.Session)
@@ -63,7 +94,9 @@ def startup_event():
     True
     
     """
+    logger.info("Started API.")
     app.mount("/static", StaticFiles(directory="NPICalculator/static"), name="static")
+    logger.info("Mounted static files.")
 
 # Endpoints
 @app.get("/", response_class=HTMLResponse)
@@ -81,7 +114,8 @@ def index(request : Request):
     """
     message = "Welcome to NPI Calculator Tool !"
     icon = "info"
-    return views.IndexView().render(request, message = message, icon = icon)
+    response = views.IndexView().render(request, message = message, icon = icon)
+    return response
 
 @app.get("/home", response_class=HTMLResponse)
 def home(request : Request):
@@ -94,7 +128,8 @@ def home(request : Request):
     True
 
     """
-    return views.IndexView().render(request, message = None, icon = None)
+    response = views.IndexView().render(request, message = None, icon = None)
+    return response
 
 @app.post("/calculate", response_class=HTMLResponse)
 def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
@@ -165,9 +200,11 @@ def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
             engine.save(op, db)
             message = f"{expression} = {result}"
             icon = "success"
-    except ValueError as _:
-        pass
-    return views.IndexView().render(request, message = message, icon = icon)
+            logger.info(message)
+    except ValueError as e:
+        logger.error(str(e))
+    response = views.IndexView().render(request, message = message, icon = icon)
+    return response
 
 @app.get('/results', response_class=HTMLResponse)
 def get_results(request : Request, db = Depends(get_db)):
@@ -185,7 +222,8 @@ def get_results(request : Request, db = Depends(get_db)):
 
     """
     results = db.query(models.Operation).all()
-    return views.ResultsView().render(request, results = results)
+    response = views.ResultsView().render(request, results = results)
+    return response
 
 @app.get('/results/csv')
 def download_results_csv(db  = Depends(get_db)):
@@ -216,5 +254,6 @@ def download_results_csv(db  = Depends(get_db)):
     headers = {
         'Content-Disposition': 'attachment; filename="history.csv"'
     }
-    return StreamingResponse(csv_io, media_type="text/csv", headers=headers)
+    response = StreamingResponse(csv_io, media_type="text/csv", headers=headers)
+    return response
     

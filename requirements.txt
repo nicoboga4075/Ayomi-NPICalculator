@@ -4,3 +4,5 @@ sqlalchemy
 Jinja2
 python-multipart
 pandas
+starlette
+logging

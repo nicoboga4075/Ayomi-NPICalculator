@@ -24,6 +24,8 @@ jobs:
         pip install Jinja2
         pip install python-multipart
         pip install pandas
+        pip install starlette
+        pip install logging
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')
