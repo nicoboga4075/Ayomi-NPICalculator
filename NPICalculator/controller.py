@@ -17,7 +17,7 @@ True
 from io import StringIO
 from time import time
 import pandas as pd
-from fastapi import FastAPI, Request, Depends, Form
+from fastapi import FastAPI, Request, Depends, Form, status
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
@@ -26,7 +26,19 @@ from NPICalculator import models, views # MVC Design
 from NPICalculator.logger import logger # Custom logger
 
 # FastAPI Setup
-app = FastAPI()
+app = FastAPI(
+    title="NPI Calculator API",
+    description="This is a sample API to demonstrate Reverse Polish Notation.",
+    version="1.0",
+    contact={
+        "name": "API Support",
+        "email": "nicolas.bogalheiro@gmail.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    }
+)
 
 # CORS Setup
 app.add_middleware(
@@ -61,6 +73,19 @@ async def dispatch(request: Request, call_next):
     return response
 
 app.add_middleware(BaseHTTPMiddleware, dispatch = dispatch)
+
+# Custom Open API Tags Setup
+tags_metadata = [
+    {
+        "name": "Index",
+        "description": "Home page with calculation form",
+    },
+    {
+        "name": "Results",
+        "description": "Operations history in the database",
+    },
+]
+app.openapi_tags = tags_metadata
 
 # Calculator Setup
 engine = models.Calculator()
@@ -99,10 +124,10 @@ def startup_event():
     logger.info("Mounted static files.")
 
 # Endpoints
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, status_code=status.HTTP_200_OK,
+description = "Renders the index page with a welcome message.", tags = ["Index"])
 def index(request : Request):
-    """ Renders the index page with a welcome message.
-
+    """ 
     >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
     >>> response = index(request)
@@ -110,31 +135,29 @@ def index(request : Request):
     True
     >>> "Welcome to NPI Calculator Tool !" in response.body.decode()
     True
-
     """
     message = "Welcome to NPI Calculator Tool !"
     icon = "info"
     response = views.IndexView().render(request, message = message, icon = icon)
     return response
 
-@app.get("/home", response_class=HTMLResponse)
+@app.get("/home", response_class=HTMLResponse, status_code=status.HTTP_200_OK,
+description = "Renders the home page (same as / but without welcome message.", tags = ["Index"])
 def home(request : Request):
-    """ Renders the home page.
-    
+    """
     >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
     >>> response = home(request)
     >>> response.status_code == 200
     True
-
     """
     response = views.IndexView().render(request, message = None, icon = None)
     return response
 
-@app.post("/calculate", response_class=HTMLResponse)
+@app.post("/calculate", response_class=HTMLResponse, status_code = status.HTTP_200_OK,
+description = "Calculates the expression and stores it with result if success.", tags = ["Index"])
 def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
-    """ Calculates the expression and stores it in the database.
-    
+    """
     >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
     >>> request.form = MagicMock(return_value={"expression": "1 1 +"})
@@ -187,7 +210,6 @@ def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
     >>> response = calculate(request, "8 0 /", db)
     >>> "Invalid expression" in response.body.decode()
     True
-
     """
     message = "Invalid expression"
     icon = "error"
@@ -206,10 +228,10 @@ def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
     response = views.IndexView().render(request, message = message, icon = icon)
     return response
 
-@app.get('/results', response_class=HTMLResponse)
+@app.get('/results', response_class=HTMLResponse, status_code=status.HTTP_200_OK,
+description = "Retrieves results from the database and renders them.", tags = ["Results"])
 def get_results(request : Request, db = Depends(get_db)):
-    """ Retrieves results from the database and renders them.
-    
+    """ 
     >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
     >>> db = MagicMock()
@@ -219,16 +241,15 @@ def get_results(request : Request, db = Depends(get_db)):
     True
     >>> len(response.body.decode()) > 0
     True
-
     """
     results = db.query(models.Operation).all()
     response = views.ResultsView().render(request, results = results)
     return response
 
-@app.get('/results/csv')
+@app.get('/results/csv', response_class=StreamingResponse, status_code=status.HTTP_200_OK,
+description = "Downloads the operation history as a CSV file.", tags = ["Results"])
 def download_results_csv(db  = Depends(get_db)):
-    """ Downloads the operation history as a CSV file.
-    
+    """
     >>> from unittest.mock import MagicMock
     >>> db = MagicMock()
     >>> db.query().all.return_value = [models.Operation(expression="3 + 4", result=7)]
@@ -237,7 +258,6 @@ def download_results_csv(db  = Depends(get_db)):
     True
     >>> response.headers['Content-Disposition'] == 'attachment; filename="history.csv"'
     True
-
     """
     # Converts the data to a pandas DataFrame
     operations = db.query(models.Operation).all()
