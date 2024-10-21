@@ -20,6 +20,7 @@ import pandas as pd
 from fastapi import FastAPI, Request, Depends, Form, status
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from NPICalculator import models, views # MVC Design
@@ -160,8 +161,9 @@ def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
     """
     >>> from unittest.mock import MagicMock
     >>> request = MagicMock()
-    >>> request.form = MagicMock(return_value={"expression": "1 1 +"})
     >>> db = MagicMock()
+
+    >>> request.form = MagicMock(return_value={"expression": "1 1 +"})
     >>> response = calculate(request, "1 1 +", db)
     >>> "1 1 + = 2.0" in response.body.decode()
     True
@@ -208,23 +210,29 @@ def calculate(request : Request, expression = Form(...), db = Depends(get_db)):
 
     >>> request.form = MagicMock(return_value={"expression": "8 0 /"})
     >>> response = calculate(request, "8 0 /", db)
-    >>> "Invalid expression" in response.body.decode()
+    >>> "Division by zero" in response.body.decode()
     True
+
     """
     message = "Invalid expression"
     icon = "error"
     try:
         # Computes the result using the engine
+        logger.info("User input in form : '%s'", expression)
         result = engine.compute(expression)
-        if result:
+        if result is not None:
             # Stores the operation in the database
+            logger.info("Computed result by engine : %s", result)
             op = models.Operation(expression = expression, result = result)
             engine.save(op, db)
             message = f"{expression} = {result}"
             icon = "success"
-            logger.info(message)
-    except ValueError as e:
-        logger.error(str(e))
+            logger.info("Message displayed : %s", message)
+        else:
+            logger.error(message)
+    except (ValueError, SQLAlchemyError) as e:
+        message = str(e)
+        logger.error(message)
     response = views.IndexView().render(request, message = message, icon = icon)
     return response
 
